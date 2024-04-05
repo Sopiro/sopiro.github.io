@@ -1,0 +1,176 @@
+<p><del>컴퓨터가 고장나서 노트북으로 쓰기 시작하는 시리즈..</del></p>
+
+<h2 id="충돌-감지-알고리즘">충돌 감지 알고리즘</h2>
+
+<p>누구나 프로그래밍을 하다 보면 언젠가는 마주하는 충돌 감지 알고리즘!<br />
+게임 속 플레이어가 다른 오브젝트와 충돌했는지 판별하는 경우는 전형적으로 충돌 감지 알고리즘이 필요한 경우이고, 마우스가 어떤 UI 오브젝트에 올라갔는지 판별하고자 하는 경우도 일종의 충돌 감지 알고리즘이 필요한 경우이다. 이처럼 생각보다 쉽게 마주치는 녀석 치고는 실제로 처음으로 구현하고자 할 때 꽤나 당황스러울수 있는 주제이다.</p>
+
+<p>이 시리즈에서는 어떠한 도형이 점을 포함하는지 판별하는 알고리즘부터 임의의 폴리곤 간의 충돌 감지 알고리즘까지 모두 다룰 것이다.</p>
+
+<p>지금 이 포스트에서는 어떤 볼록 도형(Convex shape)이 점을 포함하는지에 대한 내용이고 다음 포스트에서는 Convex shape들 간의 충돌에 대해 다룬다. 2D를 기준으로 설명하겠지만 알고리즘들은 쉽게 3D로 확장 가능하다.</p>
+
+<h2 id="원이-점을-포함하는지-판별하기">원이 점을 포함하는지 판별하기</h2>
+
+<p>원은 위치(중심)와 반지름으로 정의할 수 있다.</p>
+
+<p><img src="/assets/img/collision/circle.png" alt="circle" /></p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre></td><td class="rouge-code"><pre><span class="k">struct</span> <span class="nc">Circle</span>
+<span class="p">{</span>
+    <span class="n">Vec2</span> <span class="n">position</span><span class="p">;</span>
+    <span class="kt">float</span> <span class="n">radius</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>원이 점을 포함한다는 것은 점과 원의 중심사이의 거리가 반지름보다 작은지 확인하면 되겠다.<br />
+어려움 없이 바로 코드로 옮기면 아래와 같다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre></td><td class="rouge-code"><pre>
+<span class="kt">bool</span> <span class="nf">TestPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Circle</span><span class="o">&amp;</span> <span class="n">c</span><span class="p">,</span> <span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">float</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">Dist2</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">position</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="n">d2</span> <span class="o">&lt;</span> <span class="n">c</span><span class="p">.</span><span class="n">radius</span> <span class="o">*</span> <span class="n">c</span><span class="p">.</span><span class="n">radius</span><span class="p">;</span>
+<span class="p">}</span>
+
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Dist2 함수는 두 점 사이 거리의 제곱을 리턴하는 함수다. 두 점 사이 거리는 피타고라스 정리고 계산 가능하고 과정에서 제곱근 연산이 필요하다. 가능한 한 무거운 연산을 피하고자 반지름의 제곱과 거리의 제곱을 비교하는 점이 포인트이다.</p>
+
+<h2 id="aabbaxis-aligned-bounding-box가-점을-포함하는지-판별하기">AABB(Axis Aligned Bounding Box)가 점을 포함하는지 판별하기</h2>
+
+<p>AABB(Axis Aligned Bounding Box)란 Box이긴 한데 Edge들이 축에 정렬되어 있는 Box다. AABB는 원 만큼 간단한 형태이고 회전이 없는 형태이기에 충돌 감지에 있어서 다양한 이점이 있다.</p>
+
+<p>AABB는 하한(lower bound)와 상한(upper bound)로 정의 할 수 있다.</p>
+
+<p><img src="/assets/img/collision/aabb.png" alt="aabb" /></p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre></td><td class="rouge-code"><pre><span class="k">struct</span> <span class="nc">AABB</span>
+<span class="p">{</span>
+    <span class="n">Vec2</span> <span class="n">min</span><span class="p">;</span> <span class="c1">// lower bound</span>
+    <span class="n">Vec2</span> <span class="n">max</span><span class="p">;</span> <span class="c1">// upper bound</span>
+<span class="p">};</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>AABB가 점을 포함한다는 것은 점이 하한보단 위에 있고 상한보다는 아래에 있는지 확인하면 된다. Edge들이 축에 정렬되어 있기 때문에 간단하게 판별이 가능하다.<br />
+코드로 옮기면 아래와 같다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="rouge-code"><pre>
+<span class="kt">bool</span> <span class="nf">TestPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">AABB</span><span class="o">&amp;</span> <span class="n">aabb</span><span class="p">,</span> <span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">aabb</span><span class="p">.</span><span class="n">min</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">p</span><span class="p">.</span><span class="n">x</span> <span class="o">||</span> <span class="n">aabb</span><span class="p">.</span><span class="n">max</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">p</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">aabb</span><span class="p">.</span><span class="n">min</span><span class="p">.</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">p</span><span class="p">.</span><span class="n">y</span> <span class="o">||</span> <span class="n">aabb</span><span class="p">.</span><span class="n">max</span><span class="p">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">p</span><span class="p">.</span><span class="n">y</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<h2 id="convex-polygon이-점을-포함하는지-판별하기">Convex polygon이 점을 포함하는지 판별하기</h2>
+
+<p>Convex polygon(볼록 폴리곤)은 도형을 가로지르는 선분이 도형의 Edge를 딱 2번만 만나는 도형을 말한다. (Edge의 tangent나 꼭지점을 지나는 경우 말고) 반대로는 Concave polygon이 있다. 앞으로 다룰 모든 충돌 관련 알고리즘은 Convex polygon에 대해 다룰것이다. 충돌 검출에 있어서 Convex polygon의 특성은 여러 경우에서 간단한 형태로 계산할 수 있도록 해준다. ( 도형 내부 임의의 선분이 polygon의 edge와 충돌하지 않는 다는 특성 등등)</p>
+
+<p><img src="/assets/img/collision/convex-concave.png" alt="convex-concave" /></p>
+
+<p>Convex polygon은 원점을 기준으로 정점들이 위치해 있고 이 점들을 world space로 변환시키는 transform으로 정의한다. 정점들의 winding order는 시계방향 또는 반시계 방향 하나로 정해져 있어야 한다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+</pre></td><td class="rouge-code"><pre><span class="k">struct</span> <span class="nc">Polygon</span>
+<span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;</span> <span class="n">vertices</span><span class="p">;</span>
+    <span class="n">Transform</span> <span class="n">t</span><span class="p">;</span>
+<span class="p">};</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>local space에 vertices를 두고 transform을 이용해 오브젝트를 정의하는 방식은 그래픽스/게임 프로그래밍에서 흔하게 사용되는 방법이다.</p>
+
+<p><img src="/assets/img/collision/polygon.png" alt="polygon" /></p>
+
+<p>우선 코드는 아래와 같다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+</pre></td><td class="rouge-code"><pre><span class="kt">bool</span> <span class="nf">TestPoint</span><span class="p">(</span><span class="k">const</span> <span class="n">Polygon</span><span class="o">&amp;</span> <span class="n">polygon</span><span class="p">,</span> <span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">p</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;&amp;</span> <span class="n">vertices</span> <span class="o">=</span> <span class="n">polygon</span><span class="p">.</span><span class="n">vertices</span><span class="p">;</span>
+    <span class="n">Vec2</span> <span class="n">localP</span> <span class="o">=</span> <span class="n">MulT</span><span class="p">(</span><span class="n">polygon</span><span class="p">.</span><span class="n">transform</span><span class="p">,</span> <span class="n">p</span><span class="p">);</span> <span class="c1">// ----------------------------------------- a</span>
+
+    <span class="kt">size_t</span> <span class="n">count</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">.</span><span class="n">size</span><span class="p">();</span>
+    <span class="kt">size_t</span> <span class="n">i0</span> <span class="o">=</span> <span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">size_t</span> <span class="n">i1</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i1</span> <span class="o">&lt;</span> <span class="n">count</span><span class="p">;</span> <span class="o">++</span><span class="n">i1</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">Vec2</span> <span class="n">normal</span> <span class="o">=</span> <span class="n">Cross</span><span class="p">(</span><span class="n">vertices</span><span class="p">[</span><span class="n">i1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">[</span><span class="n">i0</span><span class="p">],</span> <span class="mf">1.0</span><span class="n">f</span><span class="p">);</span> <span class="c1">// ----------------------- b</span>
+        <span class="c1">// normal.Normalize(); &lt;- 정규화 안해도 된다.</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">Dot</span><span class="p">(</span><span class="n">normal</span><span class="p">,</span> <span class="n">localP</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">[</span><span class="n">i0</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="n">f</span><span class="p">)</span> <span class="c1">// -------------------------------- c</span>
+        <span class="p">{</span>
+            <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="n">i0</span> <span class="o">=</span> <span class="n">i1</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>우선 a 부분에서 query point p를 폴리곤의 local space로 가져온다. (MulT 함수는 vector를 inverse transform 해주는 함수이다.)<br />
+b 부분에서는 폴리곤의 면의 normal을 계산한다. Polygon 구조체에 Normal을 미리 계산해 두었다면 인덱스로 직접 가져와도 된다.
+마지막으로 c 부분에서 폴리곤의 모든 edge에 대해 signed distance가 음수임을 확인해서 점이 폴리곤 내부에 있다고 판별한다. 점이 edge normal을 기준으로 내부인지, 외부인지 기준점(vertices[i0]) 을 이용해서 Dot 연산으로 판별하는 것이다.</p>
+
+<p><img src="/assets/img/collision/tpsd.png" alt="polygon" /></p>
+
+<h2 id="정리">정리</h2>
+
+<p>이 포스트에서는 Convex shape이 점을 포함하는지 판별하는 알고리즘을 알아봤다. 다음 포스트에서는 Convex shape들 간의 Overlap을 판별하는 알고리즘을 알아본다.</p>
