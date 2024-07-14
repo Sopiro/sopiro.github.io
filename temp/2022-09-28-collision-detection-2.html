@@ -1,0 +1,193 @@
+<p>이전 포스트에서는 Convex shape이 point를 포함하는지 판별하는 알고리즘을 알아봤다. 이번 포스트에서는 Convex shape간의 충돌(Overlap)을 다룬다.</p>
+
+<h2 id="원과-원의-충돌">원과 원의 충돌</h2>
+
+<p>원과 원이 충돌(Overlap) 판별은 간단하다. 두 원의 중심 사이 거리가 두 원의 반지름의 합보다 작으면 충돌이다. 코드로 적으면 아래와 같다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="rouge-code"><pre>
+<span class="kt">bool</span> <span class="nf">TestOverlap</span><span class="p">(</span><span class="k">const</span> <span class="n">Circle</span><span class="o">&amp;</span> <span class="n">c1</span><span class="p">,</span> <span class="k">const</span> <span class="n">Circle</span><span class="o">&amp;</span> <span class="n">c2</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">float</span> <span class="n">d2</span> <span class="o">=</span> <span class="n">Dist2</span><span class="p">(</span><span class="n">c</span><span class="p">.</span><span class="n">position</span><span class="p">,</span> <span class="n">c2</span><span class="p">.</span><span class="n">position</span><span class="p">);</span>
+    <span class="kt">float</span> <span class="n">r</span> <span class="o">=</span> <span class="n">c1</span><span class="p">.</span><span class="n">radius</span> <span class="o">+</span> <span class="n">c2</span><span class="p">.</span><span class="n">radius</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="n">d2</span> <span class="o">&lt;</span> <span class="n">r</span> <span class="o">*</span> <span class="n">r</span><span class="p">;</span>
+<span class="p">}</span>
+
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>Circle 구조체는 이전 포스트 구조체와 같다. 이전 포스트처럼 거리의 제곱을 비교하는 점이 포인트이다.</p>
+
+<h2 id="aabb간의-충돌">AABB간의 충돌</h2>
+
+<p>원과 원의 충돌과 마찬가지로 AABB간의 충돌도 간단하게 판별할 수 있다. 바로 코드로 옮기면 아래와 같다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></td><td class="rouge-code"><pre>
+<span class="kt">bool</span> <span class="nf">TestOverlap</span><span class="p">(</span><span class="k">const</span> <span class="n">AABB</span><span class="o">&amp;</span> <span class="n">a</span><span class="p">,</span> <span class="k">const</span> <span class="n">AABB</span><span class="o">&amp;</span> <span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">min</span><span class="p">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">b</span><span class="p">.</span><span class="n">max</span><span class="p">.</span><span class="n">x</span> <span class="o">||</span> <span class="n">a</span><span class="p">.</span><span class="n">max</span><span class="p">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">b</span><span class="p">.</span><span class="n">min</span><span class="p">.</span><span class="n">x</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">min</span><span class="p">.</span><span class="n">y</span> <span class="o">&gt;</span> <span class="n">b</span><span class="p">.</span><span class="n">max</span><span class="p">.</span><span class="n">y</span> <span class="o">||</span> <span class="n">a</span><span class="p">.</span><span class="n">max</span><span class="p">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">b</span><span class="p">.</span><span class="n">min</span><span class="p">.</span><span class="n">y</span><span class="p">)</span> <span class="k">return</span> <span class="nb">false</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nb">true</span><span class="p">;</span>
+<span class="p">}</span>
+
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>하한이 상한보다 크거나 상한이 하한보다 작으면 비충돌이다.</p>
+
+<p>원 vs. 원, AABB vs. AABB 충돌은 어떻게 보면 특수한(?) 경우이고 간단하게 충돌 판별이 가능하다. 하지만 많은 경우 충돌을 검출하고자 하는 오브젝트는 복잡한 모양이다. 적어도 단순한 박스 형태가 아닌 Convex 폴리곤 형태이고 회전도 같이 고려되어야 한다.</p>
+
+<p>원이나 AABB는 더 정교하고 비용이 높은 충돌 알고리즘을 이용하기 전에 충돌 가능성을 확인하기 위해 사용된다. 두 오브젝트를 감싸는 AABB의 충돌이 없다면 더 정교한 충돌 감지 스텝을 패스하고 충돌이 있다면 정교한 알고리즘을 이용한 충돌을 확인한다. AABB의 BB, Bounding Box가 여기서 나온 의미다.</p>
+
+<h2 id="convex-polygon간의-충돌-sat">Convex polygon간의 충돌 (SAT)</h2>
+
+<p>이제 Convex polygon간의 충돌을 판별하는 알고리즘을 알아보자. 이 포스트에서는 SAT(Separating Axis Theorem)를 설명할 것이고 다음 포스트에서는 SAT보다 효율적이지만 조금 더 복잡한 GJK(Gilbert Johnson Keerthi) distance 알고리즘을 이용해 충돌을 검출하는 방법을 설명한다.</p>
+
+<p>SAT(Separating Axis Theorem), 분리축 정리는 “두 도형이 충돌하지 않는다면 도형의 정사영이 겹치지 않는 분리축이 존재한다” 라는 내용이다. 아래 그림을 보자.</p>
+
+<p><img src="/assets/img/collision/sat.png" alt="sat" /><em>https://en.wikipedia.org/wiki/Hyperplane_separation_theorem 잘 안보이면 다크모드 해제!</em></p>
+
+<p>사진속 두 Convex shape의 초록 선(분리축) 위 정사영은 분리되어 있다. 직관적으로 정리가 납득되기도 하지만 수학적 증명이 필요하다면 위 사진출처를 참고하자.</p>
+
+<p>자 그렇다면 이 정리를 이용해서 Convex polygon간의 충돌을 검출하려면 적절히 후보 분리축을 찾고, 폴리곤을 분리축에 투영(Projection)해봐서 영역이 분리되는지 판별해 봐야 한다. 그렇다면 분리축을 어떻게 찾을까? 이 알고리즘을 구현하는데 있어서 핵심은 후보 분리축을 임의로 정하는것이 아니라는 것이다.</p>
+
+<p>결론부터 말하면 분리축의 후보는 두 폴리곤 edge의 법선(Normal)이고 두 폴리곤의 모든 법선에 대해서 투영결과가 하나라도 겹치지 않는다면 충돌이 아닌것이다.</p>
+
+<p>왜 분리축의 후보가 edge의 노말일까? 분리축은 무수히 많을 수 있다.<br />
+두 Convex polygon이 충돌하는 경우를 잘 생각해 본다면, 모든 충돌은 한 폴리곤의 edge와 다른 폴리곤의 버텍스가 충돌하는 경우로 볼 수 있다. 그래서 테스트해 보려는 분리축 후보로 edge의 노말을 고른다면 분리축 투영 테스트는 자연스레 한 폴리곤의 edge와 다른 폴리곤의 버텍스 간의 테스트가 된다. (edge의 버텍스는 정사영의 끝점이 된다.) 모든 edge들의 노말을 분리축 후보로 테스트하면 충돌이 발생 가능한 모든 시나리오를 검사하는 것과 같다.</p>
+
+<p>코드는 다음과 같다.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+</pre></td><td class="rouge-code"><pre>
+<span class="c1">// a에 대한 b의 signed distance를 계산함</span>
+<span class="k">static</span> <span class="kt">float</span> <span class="nf">ComputeSeparation</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;&amp;</span> <span class="n">va</span><span class="p">,</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;&amp;</span> <span class="n">vb</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">float</span> <span class="n">maxSeparation</span> <span class="o">=</span> <span class="o">-</span><span class="n">FLT_MAX</span><span class="p">;</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">uint32</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">va</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">va0</span> <span class="o">=</span> <span class="n">va</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+        <span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">va1</span> <span class="o">=</span> <span class="n">va</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">va</span><span class="p">.</span><span class="n">size</span><span class="p">()];</span>
+
+        <span class="c1">// 오른손 좌표계, 반시계방향 버텍스 winding order에서 edge normal을 구함.</span>
+        <span class="n">Vec2</span> <span class="n">normal</span> <span class="o">=</span> <span class="n">Cross</span><span class="p">((</span><span class="n">va1</span> <span class="o">-</span> <span class="n">va0</span><span class="p">).</span><span class="n">Normalized</span><span class="p">(),</span> <span class="mf">1.0</span><span class="n">f</span><span class="p">);</span> <span class="c1">// == Cross(edge, {0.0f, 0.0f, 1.0f})</span>
+        <span class="kt">float</span> <span class="n">separation</span> <span class="o">=</span> <span class="n">FLT_MAX</span><span class="p">;</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">uint32</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">vb</span><span class="p">.</span><span class="n">size</span><span class="p">();</span> <span class="o">++</span><span class="n">j</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">vb0</span> <span class="o">=</span> <span class="n">vb</span><span class="p">[</span><span class="n">j</span><span class="p">];</span>
+
+            <span class="c1">// 현재 edge에 대해서 b 버텍스의 signed distance를 계산하고 최소값만 keep함.</span>
+            <span class="c1">// signed distance가 양수라면 노말의 방향으로 떨어진, 즉 edge 바깥의 점,</span>
+            <span class="c1">// 음수라면 edge 내부의 점이라고 판별.</span>
+            <span class="n">separation</span> <span class="o">=</span> <span class="n">Min</span><span class="p">(</span><span class="n">separation</span><span class="p">,</span> <span class="n">Dot</span><span class="p">(</span><span class="n">normal</span><span class="p">,</span> <span class="n">vb0</span> <span class="o">-</span> <span class="n">va0</span><span class="p">));</span>
+        <span class="p">}</span>
+
+        <span class="c1">// signed distance의 최대값, 즉 max separation를 저장한다.</span>
+        <span class="n">maxSeparation</span> <span class="o">=</span> <span class="n">Max</span><span class="p">(</span><span class="n">separation</span><span class="p">,</span> <span class="n">maxSeparation</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">maxSeparation</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">bool</span> <span class="n">SAT</span><span class="p">(</span><span class="n">Polygon</span><span class="o">*</span> <span class="n">a</span><span class="p">,</span> <span class="n">Polygon</span><span class="o">*</span> <span class="n">b</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;&amp;</span> <span class="n">va</span> <span class="o">=</span> <span class="n">a</span><span class="o">-&gt;</span><span class="n">GetVertices</span><span class="p">();</span>
+    <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;&amp;</span> <span class="n">vb</span> <span class="o">=</span> <span class="n">b</span><span class="o">-&gt;</span><span class="n">GetVertices</span><span class="p">();</span>
+
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;</span> <span class="n">wva</span><span class="p">(</span><span class="n">va</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Vec2</span><span class="o">&gt;</span> <span class="n">wvb</span><span class="p">(</span><span class="n">vb</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+
+    <span class="c1">// local 버텍스들을 world space 버텍스로 변환</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">transform</span><span class="p">(</span><span class="n">va</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">va</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">wva</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">v</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">a</span><span class="o">-&gt;</span><span class="n">GetTransform</span><span class="p">()</span> <span class="o">*</span> <span class="n">v</span><span class="p">;</span> <span class="p">});</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">transform</span><span class="p">(</span><span class="n">vb</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="n">vb</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span> <span class="n">wvb</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span> <span class="p">[</span><span class="o">&amp;</span><span class="p">](</span><span class="k">const</span> <span class="n">Vec2</span><span class="o">&amp;</span> <span class="n">v</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">b</span><span class="o">-&gt;</span><span class="n">GetTransform</span><span class="p">()</span> <span class="o">*</span> <span class="n">v</span><span class="p">;</span> <span class="p">});</span>
+
+    <span class="c1">// a의 edge에 대해 b의 버텍스를, b의 edge에 대해 a 버텍스를 모두 테스트 한다.</span>
+    <span class="c1">// 두 테스트 결과가 다 음수라면, 즉 Separating Axis가 없다면 충돌이다.</span>
+    <span class="k">return</span> <span class="n">ComputeSeparation</span><span class="p">(</span><span class="n">wva</span><span class="p">,</span> <span class="n">wvb</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="n">f</span> <span class="o">&amp;&amp;</span> <span class="n">ComputeSeparation</span><span class="p">(</span><span class="n">wvb</span><span class="p">,</span> <span class="n">wva</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="n">f</span><span class="p">;</span>
+<span class="p">}</span>
+
+</pre></td></tr></tbody></table></code></pre></div></div>
+
+<p>위 코드는 signed distance라는 개념을 이용해서 SAT를 단순화한다.</p>
+
+<p><img src="/assets/img/collision/sd.png" alt="sd" /><em>edge의 노말을 기준으로 바깥쪽은 + 거리, 안쪽으로는 - 거리</em></p>
+
+<p>테스트하려는 edge에 대해 상대 버텍스들의 signed distance 구하고 최솟값만 비교해서 max separation(overlap)를 구한다. max separation이 음수라면 분리축을 찾지 못한 것이다.<br />
+a의 edge에 대해서 b를, 반대로 b의 edge에 대해서 a를 다 테스트해서 분리축을 찾지 못하면 충돌했다고 판별한다. (코드에 달아놓은 주석을 참고해 주세요. 그림을 그려보면 이해가 쉽습니다.)</p>
+
+<p>시간 복잡도는 코드를 보면 알 수 있듯이 O(n*m)이 된다.</p>
+
+<h2 id="concave-polygon의-충돌">Concave polygon의 충돌</h2>
+
+<p>Concave polygon간의 충돌은 어떻게 판별할까?</p>
+
+<p>단순하게 Concave polygon을 Convex polygon으로 쪼개서 검사한다. 이 과정을 Convex decomposition 이라고 한다.</p>
+
+<p><img src="/assets/img/collision/cd.png" alt="cd" /></p>
